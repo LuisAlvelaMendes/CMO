@@ -1,0 +1,22 @@
+AS PERGUNTAS SAO SOBRE OS LOGS. TEM QUE SE FAZER PARSING DOS MESMOS COM UM PROGRAMA PARA OBTER INFO ACERCA DAS DIVERSAS DISTRIBUICOES
+QUE ELE VAI PERGUNTAR.
+
+O programa tem de ser feito a mao em (C, python, whatever ..) ou usar excell. Tem de ler o log, para ver a "cummulative distribution".
+Count number of lines that have PR smaller than 0, between 10 and 20, 30 and 40, 50 and 60.
+Define percentage of values where Pr < -120 or Pr < -110.
+
+DEFINE OUR OWN NETWORK:
+Define another  repeater.
+Find a place to position the new repeater.
+Minimize area without coverage.
+Find areas with lowest coverage, place an antenna in the highest spot of that place. Simulate coverage and try again.
+(Trial and error)
+
+Number of locations = number of pixels = number of lines.
+
+Everything is centered around counting the lines in the logs.
+
+--> Locations with no coverage and highest places <--
+--> more pixels, more lines, better coverage <--
+
+Make histograms with data about good or bad coverage.
