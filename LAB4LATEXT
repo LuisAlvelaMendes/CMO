@@ -1,0 +1,241 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{array}
+\usepackage{natbib}
+\usepackage{graphicx}
+\usepackage{tabularx}
+\usepackage{pdflscape}
+\usepackage{everypage}
+\usepackage{lipsum}
+\usepackage{dirtytalk}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{color}
+\usepackage{float}
+
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+
+\lstset{frame=tb,
+  language=Java,
+  aboveskip=3mm,
+  belowskip=3mm,
+  showstringspaces=false,
+  columns=flexible,
+  basicstyle={\small\ttfamily},
+  numbers=none,
+  numberstyle=\tiny\color{gray},
+  keywordstyle=\color{blue},
+  commentstyle=\color{dkgreen},
+  stringstyle=\color{mauve},
+  breaklines=true,
+  breakatwhitespace=true,
+  tabsize=3
+}
+
+
+\hypersetup{
+    colorlinks=true,
+    filecolor=magenta,      
+    linkcolor=black,
+    urlcolor=blue,
+    pdftitle={Sharelatex Example},
+    pdfpagemode=FullScreen,
+}
+
+\newcommand{\Lpagenumber}{\ifdim\textwidth=\linewidth\else\bgroup
+  \dimendef\margin=0 %use \margin instead of \dimen0
+  \ifodd\value{page}\margin=\oddsidemargin
+  \else\margin=\evensidemargin
+  \fi
+  \raisebox{\dimexpr -\topmargin-\headheight-\headsep-0.5\linewidth}[0pt][0pt]{%
+    \rlap{\hspace{\dimexpr \margin+\textheight+\footskip}%
+    \llap{\rotatebox{90}{\thepage}}}}%
+\egroup\fi}
+\AddEverypageHook{\Lpagenumber}%
+
+\newcolumntype{Y}[1]{>{\centering\arraybackslash}X}
+\newcolumntype{Z}[1]{>{\centering\arraybackslash}m{#1\textwidth}}
+
+\begin{document}
+
+\begin{titlepage}
+	\centering
+    \includegraphics[scale = 0.40]{images/logo.jpg} \\ [1cm]
+	\textbf{\Large CMO/COMO}\\[0.5 cm]
+	\textbf{\large MIEIC/MIEEC}\\[0.5 cm]
+	\rule{\linewidth}{0.2 mm} \\[0.4 cm]
+	{ \huge \bfseries \ {Lab 4: Network Simulation - WiFi }}\\
+	\rule{\linewidth}{0.2 mm} \\[1.5 cm]
+	\textbf{\large 30 April 2020}\\[0.5 cm]
+	
+	\begin{center}
+        \textbf{Professor:} Manuel Alberto Pereira Ricardo \\[1cm]
+    \end{center}
+    
+    \begin{minipage}{0.5\textwidth}
+	\begin{flushleft} \large
+		\textbf{Related students:}\\
+		Francisco Fernandes Xavier de Barros \\
+		Luís Alvela Duarte Mendes\\
+		\end{flushleft}
+		\end{minipage}~
+		\begin{minipage}{0.35\textwidth}
+		\begin{flushright} \large
+		\textbf{Student numbers:} \\
+		up201506338\\
+		up201605769\\
+	\end{flushright}
+\end{minipage}\\[2 cm]
+\end{titlepage}
+
+\vfill
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\thispagestyle{empty}
+\tableofcontents
+\pagebreak
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\setcounter{page}{1}
+
+\section{Introduction}
+The purpose of this study is to evaluate the performance of a WiFi network in several different scenarios.
+
+For this effect, we will be using: a discrete event simulation tool, known as \textit{network simulator ns-3}, to emulate the network itself; \textit{Flowmon} to obtain relevant statistics and \textit{WireShark} to study traffic logs. The cases to analyse are as follows:
+\begin{itemize}
+    \item The variation of Throughput with changes to the distance between devices.
+    \item The variation of Throughput with changes to the number of STAs.
+    \item The variation of TCP Throughput with different UDP bitrates.
+    \item The variation of Throughput with changes to distance with relay.
+\end{itemize}
+
+\section{Experiments}
+\label{sec:results}
+
+\subsection{First Study – Throughput vs distance}
+
+\subsubsection{Description}
+This study involves creating a flow between an access point and an STA, where we assume both have full TCP/IP stacks.
+
+We carried out several simulations for different distances between the STA and AP in the following interval: [100, 1600] (meters).
+
+Using Flowmon, we managed to calculate the Throughput of Flows by adding the following piece of code to \textit{first\_study.cc}:
+\begin{lstlisting}
+	// Print per flow statistics
+	flowMonitor->CheckForLostPackets ();
+	Ptr<Ipv4FlowClassifier> classifier = DynamicCast<Ipv4FlowClassifier> (flowHelper.GetClassifier ());
+	std::map<FlowId, FlowMonitor::FlowStats> stats = flowMonitor->GetFlowStats ();
+
+  	for (std::map<FlowId, FlowMonitor::FlowStats>::const_iterator iter = stats.begin (); iter != stats.end (); ++iter)
+    {
+		Ipv4FlowClassifier::FiveTuple t = classifier->FindFlow (iter->first);
+		NS_LOG_UNCOND("Flow ID: " << iter->first << " Src Addr " << t.sourceAddress << " Dst Addr " << t.destinationAddress);
+		NS_LOG_UNCOND("Tx Packets = " << iter->second.txPackets);
+		NS_LOG_UNCOND("Rx Packets = " << iter->second.rxPackets);
+		float timeDiff = 
+		(iter->second.timeLastRxPacket.GetSeconds()-iter->second.timeFirstTxPacket.GetSeconds());
+		
+		NS_LOG_UNCOND("Throughput: " << iter->second.rxBytes * 8.0 / timeDiff / 1024  << " Kbps");
+    }
+\end{lstlisting}
+
+For each experiment, we used the above code to obtain Throughput and we considered the value of the node that receives the information (this is determined taking into account the flow of ID: 1, which goes from 10.0.0.2 to 10.0.0.1). To run each scenario, we used the following command: 
+
+\begin{lstlisting}
+    ./waf --run "first_study --distance=DIST --duration=60"
+\end{lstlisting}
+
+Where DIST is a value belonging to the interval [100, 1600]. We started measurements at 100 meters and advanced with a step size of 50 meters. After extracting the necessary values from each run, we computed a graph using Microsoft Excel to obtain our results.
+
+\subsubsection{Results}
+
+The results are displayed in the form of a graph that measures Throughput as a function of distance:
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.6]{images/results/STUDY1-RESULTS.png}
+    \caption{Throughput vs Distance}
+    \label{fig:my_label}
+\end{figure}
+
+\pagebreak
+
+\subsection{Second Study – Throughput vs number of STAs}
+
+\subsubsection{Description}
+
+This study has us investigate the influence of the number of STAs (senders) in the overall average Throughput (an aggregated measure resulting from the sum of all surrounding stations). 
+
+All sender nodes in the study are at the same distance from the AP (positioned in a circumference around it) and both them and the access point have full TCP/IP stacks.  
+
+For each experiment, we used the same code from Study 1 to obtain Throughput and we considered the value of the node that receives the information for each flow (this is determined taking into account the first flow of each set, which goes from 10.0.0.X to 10.0.0.1, where X is sender node number 2, 3, 4 and so on). To run each scenario, we used the following command:
+
+\begin{lstlisting}
+    ./waf --run "second_study --duration=60 --nr_of_senders=NUM"
+\end{lstlisting}
+
+Where NUM is a number belonging to the interval [2, 15]. We started measurements at 2 senders and advanced with a step of 1 sender. After extracting the necessary values, we once again computed a graph.
+
+\subsubsection{Results}
+
+The results are displayed in the form of a graph that measures Throughput as a function of the number of senders:
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.59]{images/results/STUDY2-RESULTS.png}
+    \caption{Throughput vs Number of Senders}
+    \label{fig:my_label}
+\end{figure}
+
+\pagebreak
+
+\subsection{Third Study – TCP Throughput vs UDP bitrate}
+
+\subsubsection{Description}
+
+In this case, we want to see how TCP Throughput varies in relation to UDP bitrate. For this scenario, we have 2 STA and our usual AP; the senders are at the same distance from the sink. 
+
+One of the STA will generate a TCP flow towards the AP, whereas the other generates a constant bitrate UDP flow (the access point will have a port for each of them).
+
+We used the same logic as before, but in this case (... WIP ...)
+
+\begin{lstlisting}
+    ./waf --run "third_study --duration=60 --udp_data_rate=RATE"
+\end{lstlisting}
+
+Where RATE is a value belonging to the interval [1, X] Mb/s, X being the value beyond which link capacity is exceeded.
+
+\subsubsection{Results}
+
+The results are displayed as a graph that measures TCP Throughput as a fuction of UDP bitrate.
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.6]{images/results/study1/STUDY3-RESULTS.png}
+    \caption{TCP Throughput vs UDP Bitrate}
+    \label{fig:my_label}
+\end{figure}
+
+\pagebreak
+
+\subsection{Fourth Study – Throughput vs distance with relay}
+
+\subsubsection{Description}
+
+Finally, in this study we will be evaluating the influence of distance with relay in Throuput.
+
+For this, we will have the STA generate a TCP flow towards  the AP, such flow will be sent via the RELAY node.
+
+
+\subsubsection{Results}
+
+WIP (..)
+
+Situation in which the relay node should be used:
+
+\pagebreak
+
+\section{Conclusions}
+
+
+
+\end{document}
